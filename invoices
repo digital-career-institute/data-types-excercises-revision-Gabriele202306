@@ -1,0 +1,99 @@
+
+--1--
+CREATE TYPE invoice_status AS ENUM ('NEW', 'PAID', 'WAITING FOR PAYMENT');
+
+CREATE TABLE Invoices (
+    id SERIAL PRIMARY KEY,
+    buyer VARCHAR(255),
+    seller VARCHAR(255),
+    value DECIMAL(10,2),
+    account_number VARCHAR(20),
+    status invoice_status
+);
+
+INSERT INTO Invoices (buyer, seller, value, account_number, status) VALUES
+('Company Anna', 'Company Ben', 1000.50, '123456789', 'NEW'),
+('Company Caro', 'Company Donald', 1075.00, '987654321', 'PAID'),
+('Company Erwin', 'Company Fin', 1050.50, '456789123', 'WAITING FOR PAYMENT');
+
+SELECT * FROM Invoices WHERE status = 'NEW';
+
+--2--
+select * from Invoices;
+
+ALTER TABLE Invoices ADD COLUMN uuid_id UUID;
+
+UPDATE Invoices SET uuid_id = '65b322b7-455c-4953-afd1-5e0f07f38036' where id = 1;
+
+select * from Invoices;
+
+UPDATE Invoices SET uuid_id = '7d3f989e-8c90-4ac5-abf4-05fdb57276b0' where id = 2;
+UPDATE Invoices SET uuid_id = '039becea-f5ce-4b75-b97b-5cef4231fd7c' where id = 3;
+
+select * from Invoices;
+
+--3--
+ALTER TABLE Invoices ADD COLUMN entity_json JSON, ADD COLUMN entity_jsonb JSONB;
+
+UPDATE Invoices SET entity_json = '{"buyer": "company anna", "seller": "company ben", "status": "NEW", "account_number": 123321123, "value": 1000.00}',
+                    entity_jsonb = '{"buyer": "company anna", "seller": "company ben", "status": "NEW", "account_number": 123321123, "value": 750.00}';
+
+select * from Invoices;
+
+UPDATE Invoices 
+SET 
+    entity_json = '{"buyer": "company erwin", "seller": "company fin", "status": "WAITING FOR PAYMENT", "account_number": 456789123, "value": 1000.00}',
+    entity_jsonb = '{"buyer": "company erwin", "seller": "company fin", "status": "WAITING FOR PAYMENT", "account_number": 456789123, "value": 750.00}'
+WHERE 
+    buyer = 'Company Erwin' OR buyer = 'Company FIN';
+
+UPDATE Invoices 
+SET 
+    entity_json = '{"buyer": "company caro", "seller": "company donald", "status": "PAID", "account_number": 231654789, "value": 1000.00}',
+    entity_jsonb = '{"buyer": "company caro", "seller": "company donald", "status": "Paid", "account_number": 231654789, "value": 750.00}'
+WHERE 
+    buyer = 'Company Caro' OR buyer = 'Company Donald';
+
+SELECT * FROM Invoices;
+
+--4--
+ALTER TABLE Invoices ADD COLUMN phone_numbers VARCHAR(20)[];
+
+UPDATE Invoices SET phone_numbers = ARRAY['123456789', '987654321', '654321987'] WHERE id = 3;
+UPDATE Invoices SET phone_numbers = ARRAY['741852963', '369258147, 123789654'] WHERE id = 2;
+UPDATE Invoices SET phone_numbers = ARRAY['030456789', '030321654, 030258369'] WHERE id = 1;
+
+SELECT buyer, phone_numbers[ARRAY_LENGTH(phone_numbers, 1)] FROM Invoices WHERE id = 3;
+
+SELECT * FROM Invoices WHERE '030456789' = ANY(phone_numbers);
+
+SELECT * FROM Invoices;
+
+--5--
+ALTER TABLE Invoices ADD COLUMN file_data BYTEA;
+
+UPDATE Invoices SET file_data = pg_read_binary_file('C:\Users\49176\OneDrive\Desktop\DCI') WHERE id = 1;
+ALTER TABLE Invoices ADD COLUMN file_data BYTEA;
+
+--6--
+ALTER TABLE Invoices
+    ADD COLUMN payment_deadline DATE,
+    ADD COLUMN transaction_time TIMESTAMPTZ,
+    ADD COLUMN transaction_hour TIME,
+    ADD COLUMN cyclic_payment BOOLEAN;
+
+UPDATE Invoices
+SET
+    payment_deadline = '2024-01-15',
+    transaction_time = '2024-01-30 12:30:00',
+    transaction_hour = '12:30:00',
+    cyclic_payment = true;
+
+
+UPDATE Invoices SET transaction_time = transaction_time AT TIME ZONE 'Australia/Melbourne';
+UPDATE Invoices SET transaction_hour = transaction_hour AT TIME ZONE 'Australia/Melbourne';
+
+
+UPDATE Invoices SET transaction_time = transaction_time + INTERVAL '10 hours';
+
+SELECT transaction_time FROM Invoices;
